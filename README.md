@@ -39,3 +39,9 @@ After this, I can successfully boot into the JeOS first boot configuration. As I
 There are two controllable fans, one on the board for CPU and one on top for the hard drives. Both are PWM capable and are controlled through pins 12 and 13. The original code uses Python and `RPi.GPIO`, however that did not work well for me. I also tried another Python libraries for GPIO pins, but was not able to solve performance issues nicely. For the PWM to work correctly, the controlling frequency needs to be high enough to prevent buzzing noises in an audible spectrum from the fans and neither library was able to provide it. After some extended search, I stumbled upon Go-written library `go-rpio` which was able to do hardware PWM (instead of slower software emulated) and which was able to achieve the optimal 25kHZ frequency.
 
 I created a simple script which allows to set each fan to any of 5 available levels (0%, 25%, 50%, 75%, 100%) and an auto mode, which will read the current CPU temperature and adapt the fan levels. The thresholds are customizable via environment variables. Provided service file for the `fan-control` utility can read those overrides and start the auto mode upon boot.
+
+### Step 3: OLED display
+
+After some fiddling and reverse engineering, I was able to find out, that I need to reset the display before use; the reset procedure is done by flipping pin 22. The display itself is a standard I2C device and instead of deprecated Adafruit Python library, I used a go-based one. Currently, the display can show current time, CPU temperature and disk use percentage. The path for the disk usage can be customized by environment variable `OLED_DU_PATH`. The output is rotated by 180° by default, which can be disabled by setting `OLED_ROTATE=false`.
+
+For the I2C to work correctly the appropriate overlay needs to be activated. Inside _config.txt_ or even better inside _extraconfig.txt_ make sure to include line `dtparam=i2c1=on`.

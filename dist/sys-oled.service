@@ -1,10 +1,11 @@
 [Unit]
-Description=SATA HAT Fan Controller
+Description=SATA HAT System status OLED
 
 [Service]
 Type=exec
 EnvironmentFile=-/etc/default/go-sata-hat
-ExecStart=/usr/bin/fan-control auto 0
+ExecStartPre=+/sbin/modprobe i2c-dev
+ExecStart=/usr/bin/sys-oled
 
 [Install]
 WantedBy=default.target

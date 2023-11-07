@@ -17,7 +17,7 @@
 
 
 Name:           golang-github-baierjan-sata-hat
-Version:        0.1.0
+Version:        0.2.0
 Release:        0
 Summary:        Quad SATA HAT Controller
 License:        MIT
@@ -40,26 +40,35 @@ go build \
    -buildmode=pie \
    ./src/fan-control
 
+go build \
+   -mod=vendor \
+   -buildmode=pie \
+   ./src/oled
+
 %install
 install -D -m0755 %{_builddir}/%{name}-%{version}/fan-control %{buildroot}%{_bindir}/fan-control
+install -D -m0755 %{_builddir}/%{name}-%{version}/oled %{buildroot}%{_bindir}/sys-oled
 install -D -m0644 dist/fan-control.service %{buildroot}%{_unitdir}/fan-control.service
+install -D -m0644 dist/sys-oled.service %{buildroot}%{_unitdir}/sys-oled.service
 
 %pre
-%service_add_pre fan-control.service
+%service_add_pre fan-control.service sys-oled.service
 
 %post
-%service_add_post fan-control.service
+%service_add_post fan-control.service sys-oled.service
 
 %preun
-%service_del_preun fan-control.service
+%service_del_preun fan-control.service sys-oled.service
 
 %postun
-%service_del_postun fan-control.service
+%service_del_postun fan-control.service sys-oled.service
 
 %files
 %license LICENSE
 %doc README.md
 %{_bindir}/fan-control
+%{_bindir}/sys-oled
 %{_unitdir}/fan-control.service
+%{_unitdir}/sys-oled.service
 
 %changelog
