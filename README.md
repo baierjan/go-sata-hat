@@ -1,5 +1,11 @@
 # Quad SATA HAT software
 
+This repository contains software for basic control over Quad SATA HAT by [Radxa](https://wiki.radxa.com/Dual_Quad_SATA_HAT). The initial implementation was created as a [HackWeek project](https://hackweek.opensuse.org/23/projects/tumbleweed-support-for-raspberry-pi-4-with-quad-sata-hat).
+
+## Goal
+
+The goal of the project is to start with a RPi 4 and SATA HAT and end up with a working NAS solution on openSUSE Tumbleweed. The provided software is only targeting Debian based distros and even in that case the support is not great.
+
 ## The Hacking
 
 ### Step 1: OS installation
@@ -27,3 +33,9 @@ gpio=25,26=op,dh
 There are several important settings, `BOOT_UART=1` will enable serial console during boot. `BOOT_ORDER=0xf14` means try USB (`4`) first, then SD card (`1`), then repeat (`f`) if necessary. In my case the USB boot is the SATA HAT. Another useful mode could be `2` for network boot. The most important part are the last two lines, `gpio=25,26=op,dh` will set pins 25 and 26 to output mode, driving high. That will enable the HAT after power-on, so it will be able to boot from it.
 
 After this, I can successfully boot into the JeOS first boot configuration. As I have already prepared everything for serial console connection, I can do the setup even without monitor and keyboard attached. I can finish the installation, setup network and ssh server.
+
+### Step 2: Fan control
+
+There are two controllable fans, one on the board for CPU and one on top for the hard drives. Both are PWM capable and are controlled through pins 12 and 13. The original code uses Python and `RPi.GPIO`, however that did not work well for me. I also tried another Python libraries for GPIO pins, but was not able to solve performance issues nicely. For the PWM to work correctly, the controlling frequency needs to be high enough to prevent buzzing noises in an audible spectrum from the fans and neither library was able to provide it. After some extended search, I stumbled upon Go-written library `go-rpio` which was able to do hardware PWM (instead of slower software emulated) and which was able to achieve the optimal 25kHZ frequency.
+
+I created a simple script which allows to set each fan to any of 5 available levels (0%, 25%, 50%, 75%, 100%) and an auto mode, which will read the current CPU temperature and adapt the fan levels. The thresholds are customizable via environment variables. Provided service file for the `fan-control` utility can read those overrides and start the auto mode upon boot.

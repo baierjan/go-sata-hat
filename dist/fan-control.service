@@ -1,0 +1,11 @@
+[Unit]
+Description=SATA HAT Fan Controller
+
+[Service]
+Type=exec
+EnvironmentFile=-/etc/default/go-sata-hat
+ExecStartPre=+/sbin/modprobe i2c-dev
+ExecStart=/usr/bin/fan-control auto 0
+
+[Install]
+WantedBy=default.target
