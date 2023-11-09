@@ -1,67 +1,32 @@
 package main
 
 import (
-    "fmt"
-    "github.com/stianeikeland/go-rpio/v4"
-    "golang.org/x/image/font"
-    "golang.org/x/image/font/inconsolata"
-    "golang.org/x/image/math/fixed"
+    "github.com/baierjan/go-sata-hat/src/common"
+
     "image"
     "log"
     "os"
     "os/signal"
+    "strconv"
+    "syscall"
+    "time"
+
+    "github.com/stianeikeland/go-rpio/v4"
+    "golang.org/x/image/font"
+    "golang.org/x/image/font/inconsolata"
+    "golang.org/x/image/math/fixed"
     "periph.io/x/conn/v3/i2c/i2creg"
     "periph.io/x/devices/v3/ssd1306"
     "periph.io/x/devices/v3/ssd1306/image1bit"
     "periph.io/x/host/v3"
-    "strconv"
-    "syscall"
-    "time"
 )
-
-func getEnv(key string, default_value string) string {
-    if value, ok := os.LookupEnv(key); ok {
-        return value
-    }
-    return default_value
-}
 
 var (
-    OLED_RESET_PIN = 23
-    BUTTON_PIN = 17
-    TEMP = getEnv("TEMP_SENSOR", "/sys/class/thermal/thermal_zone0/temp")
-    ROTATE, _ = strconv.ParseBool(getEnv("OLED_ROTATE", "true"))
-    DU_PATH = getEnv("OLED_DU_PATH", "/")
+    ROTATE, _ = strconv.ParseBool(common.GetEnv("OLED_ROTATE", "true"))
 )
 
-func Clamp (x, min, max uint32) uint32 {
-    if x > max {
-        return max
-    }
-    if x < min {
-        return min
-    }
-    return x
-}
-
-func readTemp() float64 {
-    dat, err:= os.ReadFile(TEMP)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    var temperature, _ = strconv.ParseFloat(string(dat[:3]), 64)
-    return temperature / 10.0
-}
-
-func diskUsage() float64 {
-    var stat syscall.Statfs_t
-    syscall.Statfs(DU_PATH, &stat)
-    return 100.0 * float64(stat.Blocks - stat.Bavail) / float64(stat.Blocks)
-}
-
 func resetOled() {
-    pin := rpio.Pin(OLED_RESET_PIN)
+    pin := rpio.Pin(common.OLED_RESET_PIN)
     pin.Mode(rpio.Output)
     pin.Low()
     time.Sleep(200 * time.Millisecond)
@@ -69,13 +34,12 @@ func resetOled() {
 }
 
 func setupButton() rpio.Pin {
-    pin := rpio.Pin(BUTTON_PIN)
+    pin := rpio.Pin(common.BUTTON_PIN)
     pin.Input()
     pin.PullUp()
     pin.Detect(rpio.FallEdge)
     return pin
 }
-
 
 func draw(dev *ssd1306.Dev) {
     f := inconsolata.Bold8x16
@@ -94,11 +58,7 @@ func draw(dev *ssd1306.Dev) {
             }
         }
         if show {
-            lines := [3]string{
-                time.Now().Format("Time: 15:04:05"),
-                fmt.Sprintf("Temp: %.1f°C", readTemp()),
-                fmt.Sprintf("Disk: %02.0f%%", diskUsage()),
-            }
+            lines := common.GetLines()
             img := image1bit.NewVerticalLSB(dev.Bounds())
             drawer := font.Drawer{
                 Dst:  img,
