@@ -154,13 +154,13 @@ func main() {
 
     // Install signal handler
     signal_chan := make(chan os.Signal, 1)
-    signal.Notify(signal_chan, os.Interrupt, os.Kill)
+    signal.Notify(signal_chan, os.Interrupt, os.Kill, syscall.SIGTERM)
 
     go func() {
         for {
             s := <-signal_chan
             switch s {
-            case os.Interrupt, os.Kill:
+            case os.Interrupt, os.Kill, syscall.SIGTERM:
                 log.Print("Exiting...")
                 dev.Halt()
                 bus.Close()
