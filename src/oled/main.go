@@ -28,6 +28,7 @@ func getEnv(key string, default_value string) string {
 
 var (
     OLED_RESET_PIN = 23
+    BUTTON_PIN = 17
     TEMP = getEnv("TEMP_SENSOR", "/sys/class/thermal/thermal_zone0/temp")
     ROTATE, _ = strconv.ParseBool(getEnv("OLED_ROTATE", "true"))
     DU_PATH = getEnv("OLED_DU_PATH", "/")
@@ -67,30 +68,53 @@ func resetOled() {
     pin.High()
 }
 
+func setupButton() rpio.Pin {
+    pin := rpio.Pin(BUTTON_PIN)
+    pin.Input()
+    pin.PullUp()
+    pin.Detect(rpio.FallEdge)
+    return pin
+}
+
+
 func draw(dev *ssd1306.Dev) {
     f := inconsolata.Bold8x16
+    pin := setupButton()
+    show := true
     // Draw on it.
     for {
-        lines := [3]string{
-            time.Now().Format("Time: 15:04:05"),
-            fmt.Sprintf("Temp: %.1f°C", readTemp()),
-            fmt.Sprintf("Disk: %02.0f%%", diskUsage()),
+        if pin.EdgeDetected() {
+            if show {
+                dev.Halt()
+                show = false
+                log.Print("Display turned off")
+            } else {
+                show = true
+                log.Print("Display turned on")
+            }
         }
-        img := image1bit.NewVerticalLSB(dev.Bounds())
-        drawer := font.Drawer{
-            Dst:  img,
-            Src:  &image.Uniform{image1bit.On},
-            Face: f,
-            Dot:  fixed.P(0, f.Ascent),
-        }
-        y := f.Ascent
-        for _, line := range lines {
-            drawer.DrawString(line)
-            y += f.Ascent + f.Descent
-            drawer.Dot = fixed.P(0, y)
-        }
-        if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
-            log.Fatal(err)
+        if show {
+            lines := [3]string{
+                time.Now().Format("Time: 15:04:05"),
+                fmt.Sprintf("Temp: %.1f°C", readTemp()),
+                fmt.Sprintf("Disk: %02.0f%%", diskUsage()),
+            }
+            img := image1bit.NewVerticalLSB(dev.Bounds())
+            drawer := font.Drawer{
+                Dst:  img,
+                Src:  &image.Uniform{image1bit.On},
+                Face: f,
+                Dot:  fixed.P(0, f.Ascent),
+            }
+            y := f.Ascent
+            for _, line := range lines {
+                drawer.DrawString(line)
+                y += f.Ascent + f.Descent
+                drawer.Dot = fixed.P(0, y)
+            }
+            if err := dev.Draw(dev.Bounds(), img, image.Point{}); err != nil {
+                log.Fatal(err)
+            }
         }
         time.Sleep(time.Second)
     }
