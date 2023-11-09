@@ -27,6 +27,7 @@ func getEnv(key string, default_value string) string {
 }
 
 var (
+    OLED_RESET_PIN = 23
     TEMP = getEnv("TEMP_SENSOR", "/sys/class/thermal/thermal_zone0/temp")
     ROTATE, _ = strconv.ParseBool(getEnv("OLED_ROTATE", "true"))
     DU_PATH = getEnv("OLED_DU_PATH", "/")
@@ -59,7 +60,7 @@ func diskUsage() float64 {
 }
 
 func resetOled() {
-    pin := rpio.Pin(22)
+    pin := rpio.Pin(OLED_RESET_PIN)
     pin.Mode(rpio.Output)
     pin.Low()
     time.Sleep(200 * time.Millisecond)
@@ -114,6 +115,9 @@ func main() {
     }
     defer bus.Close()
 
+    // Reset the display before connecting
+    resetOled()
+
     // Open a handle to a ssd1306 connected on the I²C bus:
     opts := ssd1306.DefaultOpts
     if ROTATE {
@@ -143,6 +147,5 @@ func main() {
     }()
 
     log.Print("Starting OLED...")
-    resetOled()
     draw(dev)
 }
