@@ -45,3 +45,11 @@ I created a simple script which allows to set each fan to any of 5 available lev
 After some fiddling and reverse engineering, I was able to find out, that I need to reset the display before use; the reset procedure is done by flipping pin 22. The display itself is a standard I2C device and instead of deprecated Adafruit Python library, I used a go-based one. Currently, the display can show current time, CPU temperature and disk use percentage. The path for the disk usage can be customized by environment variable `OLED_DU_PATH`. The output is rotated by 180° by default, which can be disabled by setting `OLED_ROTATE=false`.
 
 For the I2C to work correctly the appropriate overlay needs to be activated. Inside _config.txt_ or even better inside _extraconfig.txt_ make sure to include line `dtparam=i2c1=on`.
+
+### Step 4: Push button
+
+Pin 17 is connected to the button on the top panel. I was able to use edge detection on the pin to detect push events and use it to turn on/off the OLED display. Maybe in some later version, this could be customisable and can run an arbitrary command. The important part here is to not only switch the pin into an input mode but also activate the pull-up resistor (the button has inverted control -- i.e. pressing the button will trigger the fall-down edge and transition to low state).
+
+### Step 5: Combining all together
+
+I created a common module for shared functions and I have two binaries with a corresponding service file to control the fans and the OLED display. The provided spec file will allow OBS to create an installable package for Tumbleweed. After installation, both services need to be enabled (and started) via `systemctl enable --now fan-control sys-oled`.
